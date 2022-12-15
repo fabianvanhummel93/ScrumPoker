@@ -88,3 +88,6 @@ input[type=text] {
 input:focus::placeholder {
   color: rgba(60, 60, 60, 0.32);
 }
+.m-a {
+  margin: auto;
+}
