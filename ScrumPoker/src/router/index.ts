@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.base),
   routes: [
     {
       path: "/",
@@ -9,9 +9,14 @@ const router = createRouter({
       component: () => import("../views/Welcome.vue"),
     },
     {
-      path: "/game",
+      path: "/game:sessionId",
       name: "game",
       component: () => import("../views/GameView.vue"),
+    },
+    {
+      path: "/join:sessionId",
+      name: "join",
+      component: () => import("../views/JoinGame.vue"),
     },
   ],
 });

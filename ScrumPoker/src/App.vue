@@ -10,8 +10,20 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts">
 import ThemeSlider from "./components/ThemeSlider.vue";
+import SocketioService from './services/socketio.service.js';
+
+export default {
+  name: 'App',
+  components: {ThemeSlider},
+  created() {
+    SocketioService.setupSocketConnection();
+  },
+  beforeUnmount() {
+    SocketioService.disconnect();
+  }
+}
 </script>
 
 <style>

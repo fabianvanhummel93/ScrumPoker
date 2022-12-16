@@ -1,59 +1,118 @@
 <script setup lang="ts">
-  import { ref } from 'vue';
-  const users = [{name: "Fabian", choice: 3}, {name: "Sander", choice: 5},
-                  {name: "René", choice: 2}, {name: "Chris", choice: 5},
-                  {name: "Lloyd", choice: 2}, {name: "Jaap", choice: 3},
-                  {name: "Robin", choice: 8}, {name: "Joep", choice: "?"}]
-  const pokerSeries: string[] = ["0", "1", "2", "3", "5", "8", "?", "!"]
-  function cardSelected(item: string) {
-    // Emit value or something?
-    console.log('Emitted story point value: ', item)
-    didVote.value = !didVote.value
-    console.log('changed didVote to: ', didVote)
-  }
+import { useBoardState } from "@/stores/Boardstate";
+import { storeToRefs } from "pinia";
+import { ref, onBeforeUnmount, onBeforeMount } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import SocketioService from "../services/socketio.service.js";
+const router = useRouter();
+const route = useRoute();
 
-  function cardUnselected() {
-    // Emit value or something?
-    console.log('Emitted empty story point value')
-    didVote.value = false;
-    console.log('changed didVote to: ', didVote)
+var didVote = ref<boolean>(false);
+const board = useBoardState();
+
+const boardRefs = storeToRefs(board);
+const users = boardRefs.playerList;
+
+const scoresShown = boardRefs.showValues;
+
+const pokerSeries: string[] = ["0", "1", "2", "3", "5", "8", "?", "!"];
+function cardSelected(item: string) {
+  didVote.value = !didVote.value;
+  SocketioService.sendPokerValue("player-pokervalue", {
+    name: board.playerName!,
+    choice: item,
+    sessionId: board.sessionId!,
+  });
+}
+function cardUnselected() {
+  didVote.value = false;
+  SocketioService.sendPokerValue("player-pokervalue", {
+    name: board.playerName!,
+    choice: null,
+    sessionId: board.sessionId!,
+  });
+}
+function showVotes(sessionId: string) {
+  SocketioService.showVotes(sessionId);
+}
+function resetVoting(sessionId: string) {
+  SocketioService.resetVoting(sessionId);
+  didVote = ref(false);
+}
+onBeforeUnmount(() => {
+  SocketioService.disconnect();
+});
+onBeforeMount(() => {
+  if (!board.playerName) {
+    const routeParams: string = <string>route.params.sessionId;
+    const roomName = routeParams.split(":sessionId=")[1];
+    router.push({ path: `/join:sessionId=${roomName}` });
   }
-  var didVote = ref<boolean>(false);
+});
 </script>
 
-
 <template>
-  <div class="game">
-    <h1 class="text">Hello {{users[0].name}}</h1>
+  <div>
+    <div class="game">
+      <button
+        v-if="board.hostName === board.playerName && !scoresShown"
+        class="show-button"
+        @click="showVotes(board.sessionId!)"
+      >
+        SHOW VOTES
+      </button>
+      <button
+        v-if="board.hostName === board.playerName && scoresShown"
+        class="show-button"
+        @click="resetVoting(board.sessionId!)"
+      >
+        RESET VOTE
+      </button>
+      <h1 class="text-game">Hello {{ board.playerName }}</h1>
       <div class="table-left"></div>
       <div class="table-right"></div>
       <div class="table-center">
-        <div class="player-board" :class="{ 'player-board-small': users.length <= 12, 'player-board-large': users.length > 12  }">          
+        <div
+          class="player-board"
+          v-if="users"
+          :class="{
+            'player-board-small': users.length <= 12,
+            'player-board-large': users.length > 12,
+          }"
+        >
           <div v-for="user in users">
             <div v-if="users.length > 12">
-              <div class="player-name-small">{{user.name}}</div>
-              <div class="pokercard-small m-a">{{user.choice}}</div>
+              <div class="player-name-small">{{ user.name }}</div>
+              <div class="pokercard-small m-a">
+                <div v-if="scoresShown">{{ user.choice }}</div>
+              </div>
             </div>
             <div v-if="users.length <= 12">
-              <div class="player-name">{{user.name}}</div>
-              <div class="pokercard m-a">{{user.choice}}</div>
+              <div class="player-name">{{ user.name }}</div>
+              <div class="pokercard m-a">
+                <div v-if="scoresShown">{{ user.choice }}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-  </div>
-  <div class="poker">
-    <div v-for="item in pokerSeries">
-      <div class="pokercard pointer" @click="didVote? null : cardSelected(item)">
-        <div v-if="didVote">{{null}}</div>
-        <div v-if="!didVote">{{item}}</div>
+    </div>
+    <div class="poker">
+      <div v-for="item in pokerSeries">
+        <div
+          class="pokercard pointer"
+          @click="didVote ? null : cardSelected(item)"
+        >
+          <div v-if="didVote">{{ null }}</div>
+          <div v-if="!didVote">{{ item }}</div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="cancel">
-    <button class="button" @click="cardUnselected()">
-      <p class="m-a">CANCEL VOTE</p>
-    </button>
+    <div class="cancel">
+      <button class="button" @click="!scoresShown ? cardUnselected() : null">
+        <p class="m-a">CANCEL VOTE</p>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -63,7 +122,7 @@
   position: relative;
   align-items: center;
 }
-.table-center{
+.table-center {
   background-color: var(--color-background-mute);
   position: absolute;
   height: 50%;
@@ -71,7 +130,7 @@
   left: 30%;
   top: 10%;
 }
-.table-left{
+.table-left {
   background-color: var(--color-background-mute);
   position: absolute;
   height: 50%;
@@ -80,7 +139,7 @@
   top: 10%;
   border-radius: 50%;
 }
-.table-right{
+.table-right {
   background-color: var(--color-background-mute);
   position: absolute;
   height: 50%;
@@ -89,7 +148,7 @@
   top: 10%;
   border-radius: 50%;
 }
-.text {
+.text-game {
   color: var(--color-text-contrast);
   text-align: center;
   font-size: xxx-large;
@@ -167,5 +226,20 @@
   border-radius: 10px;
   margin: auto;
   align-items: center;
+}
+.show-button {
+  width: 120px;
+  height: 50px;
+  border: none;
+  outline: none;
+  color: #fff;
+  background: #2596be;
+  border-radius: 10px;
+  margin: auto;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  cursor: pointer;
+  z-index: 1;
 }
 </style>
