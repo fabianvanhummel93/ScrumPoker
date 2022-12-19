@@ -1,0 +1,4 @@
+apiVersion: v2
+description: Helm chart for scrum-poker-app
+name: scrum-poker-app
+version: 1.0.0

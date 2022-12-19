@@ -1,0 +1,35 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: {{ .Values.appName }}
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    deploymentconfig: {{ .Values.appName }}
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appName }}
+        deploymentconfig: {{ .Values.appName }}
+    spec:
+      containers:
+      - image: {{ .Values.image }}
+        imagePullPolicy: Always
+        name: {{ .Values.appName }}
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 800Mi
+          requests:
+            cpu: 100m
+            memory: 400Mi

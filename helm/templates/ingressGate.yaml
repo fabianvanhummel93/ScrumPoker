@@ -1,0 +1,50 @@
+apiVersion: gatemin.io/v1alpha1
+kind: IngressGate
+metadata:
+  name: {{ .Values.appName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  auth:
+    type: SSO
+    options:
+      sso:
+        groupsOnly:
+          - GG_OKD_DNB_OPT_DEV
+        {{- if or (eq .Values.namespace "dnb-opt-prd") (eq .Values.namespace "dnb-opt-acc") }}
+          - GG_OKD_DNB_OPT_USERS
+          - GG_OKD_DNB_OPT_NETANA
+        {{- end }}
+        {{- if eq .Values.namespace "dnb-opt-acc" }}
+          - GG_OKD_DNB_OPT_AMBAS
+        {{- end }}
+      roles:
+        - name: admin
+          groups:
+          - GG_OKD_DNB_OPT_DEV
+      {{- if or (eq .Values.namespace "dnb-opt-prd") (eq .Values.namespace "dnb-opt-acc")}}
+        - name: gebruikers
+          groups:
+          - GG_OKD_DNB_OPT_USERS
+        - name: netwerkanalisten
+          groups:
+          - GG_OKD_DNB_OPT_NETANA
+      {{- end }}
+      {{- if eq .Values.namespace "dnb-opt-acc" }}
+        - name: ambassadeurs
+          groups:
+          - GG_OKD_DNB_OPT_AMBAS
+      {{- end }}
+{{- if eq .Values.namespace "dnb-opt-prd" }}
+  host: scrumpokerapp.apps.ocp-prd.alliander.com
+{{- else }}
+  host: scrumpokerapp-{{ .Values.namespace }}.apps.ocp-prd.alliander.com
+{{- end }}
+  services:
+  - backend:
+      serviceName: scrum-pocker-server
+      servicePort: 3000
+    path: /api
+  - backend:
+      serviceName: {{ .Values.appName }}
+      servicePort: 80
+    path: /
