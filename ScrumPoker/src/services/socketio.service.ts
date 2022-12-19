@@ -25,7 +25,16 @@ class SocketioService {
       store.updateSessionId(id);
     });
     this.socket?.on("player-entered-value", (args) => {
-      store.updateBoardState(args.users, args.showValues);
+      store.updateBoardState(args.users, args.showValues, args.roomName);
+    });
+    this.socket?.on("votes-reset", () => {
+      store.resetVoteStatus();
+    });
+    this.socket?.on("available-number-series", (args) => {
+      store.updateNumberSeries(args);
+    });
+    this.socket?.on("chosen-poker-series", (args) => {
+      store.chooseNumberSeries(args);
     });
   }
 
@@ -35,12 +44,20 @@ class SocketioService {
       name: name,
     });
     this.socket?.on("player-entered-value", (args) => {
-      store.updateBoardState(args.users, args.showValues);
+      store.updateBoardState(args.users, args.showValues, args.roomName);
+    });
+    this.socket?.on("votes-reset", () => {
+      store.resetVoteStatus();
+    });
+    this.socket?.on("available-number-series", (args) => {
+      store.updateNumberSeries(args);
+    });
+    this.socket?.on("chosen-poker-series", (args) => {
+      store.chooseNumberSeries(args);
     });
   }
 
   getRoomHost(roomName: string, store: any, router: any) {
-    console.log(roomName);
     this.socket?.emit("get-host", roomName);
     this.socket?.on("send-host", (hostName) => {
       if (hostName) {
@@ -67,6 +84,11 @@ class SocketioService {
 
   resetVoting(sessionId: string) {
     this.socket?.emit("reset-votes", sessionId);
+  }
+
+  setNumberSeries(sessionId: string, name: string) {
+    console.log("sending number series change request: ", sessionId, name);
+    this.socket?.emit("change-number-series", { id: sessionId, name: name });
   }
 }
 
