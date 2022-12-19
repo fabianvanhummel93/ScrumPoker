@@ -1,0 +1,17 @@
+name: Angular
+
+on:
+    push:
+        branches:
+            - master
+            - main
+            - release
+            - develop
+            - "feature**"
+
+jobs:
+    build-and-deploy:
+        uses: Alliander/dnb-opt-pipelines/.github/workflows/front-end.yml@main
+        secrets: inherit
+        with:
+            tektonPipeline: true
